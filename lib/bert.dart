@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
+/// Decode data serialized with :erlang.term_to_binary/1
 List<dynamic> decode(Uint8List buffer) {
   ByteData data = ByteData.sublistView(buffer);
   int index = 0;
@@ -14,186 +15,189 @@ List<dynamic> decode(Uint8List buffer) {
 
   index += 1;
 
-  return decodeType(data, () => index, (int increment) => index += increment);
+  return _decodeType(data, () => index, (int increment) => index += increment);
 }
 
-int decodeBigBignum(ByteData data, Function getIndex, Function incrementIndex) {
-  int skip = data.getInt32(getIndex());
-  incrementIndex(4);
-  return decodeBignum(data, getIndex, incrementIndex, skip);
+int _decodeBigBignum(
+    ByteData data, Function _getIndex, Function _incrementIndex) {
+  int skip = data.getInt32(_getIndex());
+  _incrementIndex(4);
+  return _decodeBignum(data, _getIndex, _incrementIndex, skip);
 }
 
-int decodeBignum(
-    ByteData data, Function getIndex, Function incrementIndex, int skip) {
+int _decodeBignum(
+    ByteData data, Function _getIndex, Function _incrementIndex, int skip) {
   int result = 0;
-  int sig = data.getUint8(getIndex());
-  incrementIndex(1);
+  int sig = data.getUint8(_getIndex());
+  _incrementIndex(1);
   int count = skip;
   while (count-- > 0) {
-    result = 256 * result + data.getUint8(getIndex() + count);
+    result = 256 * result + data.getUint8(_getIndex() + count);
   }
-  incrementIndex(skip);
+  _incrementIndex(skip);
   return result * (sig == 0 ? 1 : -1);
 }
 
-Uint8List decodeCharlist(
-    ByteData data, Function getIndex, Function incrementIndex) {
-  int size = data.getUint16(getIndex());
-  incrementIndex(2);
-  Uint8List result = Uint8List.view(data.buffer, getIndex(), size);
-  incrementIndex(size);
+Uint8List _decodeCharlist(
+    ByteData data, Function _getIndex, Function _incrementIndex) {
+  int size = data.getUint16(_getIndex());
+  _incrementIndex(2);
+  Uint8List result = Uint8List.view(data.buffer, _getIndex(), size);
+  _incrementIndex(size);
   return result;
 }
 
-double decodeFlo(ByteData data, Function getIndex, Function incrementIndex) {
+double _decodeFlo(ByteData data, Function _getIndex, Function _incrementIndex) {
   double result =
-      double.parse(utf8.decode(data.buffer.asUint8List(getIndex(), 31)));
-  incrementIndex(31);
+      double.parse(utf8.decode(data.buffer.asUint8List(_getIndex(), 31)));
+  _incrementIndex(31);
   return result;
 }
 
-double decodeIee(ByteData data, Function getIndex, Function incrementIndex) {
+double _decodeIee(ByteData data, Function _getIndex, Function _incrementIndex) {
   double result =
-      readFloat(Uint8List.view(data.buffer, getIndex(), 8), 0, false, 52, 8);
-  incrementIndex(8);
+      _readFloat(Uint8List.view(data.buffer, _getIndex(), 8), 0, false, 52, 8);
+  _incrementIndex(8);
   return result;
 }
 
-int decodeInt(ByteData data, Function getIndex, Function incrementIndex) {
-  int result = data.getInt32(getIndex());
-  incrementIndex(4);
+int _decodeInt(ByteData data, Function _getIndex, Function _incrementIndex) {
+  int result = data.getInt32(_getIndex());
+  _incrementIndex(4);
   return result;
 }
 
-List<dynamic> decodeList32(
-    ByteData data, Function getIndex, Function incrementIndex) {
-  int size = data.getUint32(getIndex());
+List<dynamic> _decodeList32(
+    ByteData data, Function _getIndex, Function _incrementIndex) {
+  int size = data.getUint32(_getIndex());
   List<dynamic> result = [];
-  incrementIndex(4);
+  _incrementIndex(4);
   for (int i = 0; i < size; i++) {
-    result.add(decodeType(data, getIndex, incrementIndex));
+    result.add(_decodeType(data, _getIndex, _incrementIndex));
   }
-  decodeType(data, getIndex, incrementIndex);
+  _decodeType(data, _getIndex, _incrementIndex);
   return result;
 }
 
-Map<String, dynamic> decodeMap(
-    ByteData data, Function getIndex, Function incrementIndex) {
-  int size = data.getUint32(getIndex());
+Map<String, dynamic> _decodeMap(
+    ByteData data, Function _getIndex, Function _incrementIndex) {
+  int size = data.getUint32(_getIndex());
   Map<String, dynamic> result = {};
-  incrementIndex(4);
+  _incrementIndex(4);
   for (int i = 0; i < size; i++) {
-    String key = decodeType(data, getIndex, incrementIndex);
-    result[key] = decodeType(data, getIndex, incrementIndex);
+    String key = _decodeType(data, _getIndex, _incrementIndex);
+    result[key] = _decodeType(data, _getIndex, _incrementIndex);
   }
   return result;
 }
 
-int decodeSmallBignum(
-    ByteData data, Function getIndex, Function incrementIndex) {
-  int skip = data.getUint8(getIndex());
-  incrementIndex(1);
-  return decodeBignum(data, getIndex, incrementIndex, skip);
+int _decodeSmallBignum(
+    ByteData data, Function _getIndex, Function _incrementIndex) {
+  int skip = data.getUint8(_getIndex());
+  _incrementIndex(1);
+  return _decodeBignum(data, _getIndex, _incrementIndex, skip);
 }
 
-String decodeString16(
-    ByteData data, Function getIndex, Function incrementIndex) {
-  int size = data.getUint16(getIndex());
-  incrementIndex(2);
-  Uint8List result = data.buffer.asUint8List(getIndex(), size);
-  incrementIndex(size);
-  return utf8Arr(result);
+String _decodeString16(
+    ByteData data, Function _getIndex, Function _incrementIndex) {
+  int size = data.getUint16(_getIndex());
+  _incrementIndex(2);
+  Uint8List result = data.buffer.asUint8List(_getIndex(), size);
+  _incrementIndex(size);
+  return _utf8Arr(result);
 }
 
-String decodeString32(
-    ByteData data, Function getIndex, Function incrementIndex) {
-  int size = data.getUint32(getIndex());
-  incrementIndex(4);
-  Uint8List result = data.buffer.asUint8List(getIndex(), size);
-  incrementIndex(size);
-  return utf8Arr(result);
+String _decodeString32(
+    ByteData data, Function _getIndex, Function _incrementIndex) {
+  int size = data.getUint32(_getIndex());
+  _incrementIndex(4);
+  Uint8List result = data.buffer.asUint8List(_getIndex(), size);
+  _incrementIndex(size);
+  return _utf8Arr(result);
 }
 
-String decodeString8(
-    ByteData data, Function getIndex, Function incrementIndex) {
-  int size = data.getUint8(getIndex());
-  incrementIndex(1);
-  Uint8List result = data.buffer.asUint8List(getIndex(), size);
-  incrementIndex(size);
-  return utf8Arr(result);
+String _decodeString8(
+    ByteData data, Function _getIndex, Function _incrementIndex) {
+  int size = data.getUint8(_getIndex());
+  _incrementIndex(1);
+  Uint8List result = data.buffer.asUint8List(_getIndex(), size);
+  _incrementIndex(size);
+  return _utf8Arr(result);
 }
 
-int decodeTinyInt(ByteData data, Function getIndex, Function incrementIndex) {
-  int result = data.getUint8(getIndex());
-  incrementIndex(1);
+int _decodeTinyInt(
+    ByteData data, Function _getIndex, Function _incrementIndex) {
+  int result = data.getUint8(_getIndex());
+  _incrementIndex(1);
   return result;
 }
 
-List<dynamic> decodeTuple(
-    ByteData data, Function getIndex, Function incrementIndex, int size) {
+List<dynamic> _decodeTuple(
+    ByteData data, Function _getIndex, Function _incrementIndex, int size) {
   List<dynamic> result = [];
   for (int i = 0; i < size; i++) {
-    result.add(decodeType(data, getIndex, incrementIndex));
+    result.add(_decodeType(data, _getIndex, _incrementIndex));
   }
   return result;
 }
 
-List<dynamic> decodeTuple32(
-    ByteData data, Function getIndex, Function incrementIndex) {
-  int size = data.getUint32(getIndex());
-  incrementIndex(4);
-  return decodeTuple(data, getIndex, incrementIndex, size);
+List<dynamic> _decodeTuple32(
+    ByteData data, Function _getIndex, Function _incrementIndex) {
+  int size = data.getUint32(_getIndex());
+  _incrementIndex(4);
+  return _decodeTuple(data, _getIndex, _incrementIndex, size);
 }
 
-List<dynamic> decodeTuple8(
-    ByteData data, Function getIndex, Function incrementIndex) {
-  int size = data.getUint8(getIndex());
-  incrementIndex(1);
-  return decodeTuple(data, getIndex, incrementIndex, size);
+List<dynamic> _decodeTuple8(
+    ByteData data, Function _getIndex, Function _incrementIndex) {
+  int size = data.getUint8(_getIndex());
+  _incrementIndex(1);
+  return _decodeTuple(data, _getIndex, _incrementIndex, size);
 }
 
-dynamic decodeType(ByteData data, Function getIndex, Function incrementIndex) {
-  int type = data.getUint8(getIndex());
-  incrementIndex(1);
+dynamic _decodeType(
+    ByteData data, Function _getIndex, Function _incrementIndex) {
+  int type = data.getUint8(_getIndex());
+  _incrementIndex(1);
   switch (type) {
     case 97:
-      return decodeTinyInt(data, getIndex, incrementIndex);
+      return _decodeTinyInt(data, _getIndex, _incrementIndex);
     case 98:
-      return decodeInt(data, getIndex, incrementIndex);
+      return _decodeInt(data, _getIndex, _incrementIndex);
     case 99:
-      return decodeFlo(data, getIndex, incrementIndex);
+      return _decodeFlo(data, _getIndex, _incrementIndex);
     case 70:
-      return decodeIee(data, getIndex, incrementIndex);
+      return _decodeIee(data, _getIndex, _incrementIndex);
     case 100:
-      return decodeString16(data, getIndex, incrementIndex);
+      return _decodeString16(data, _getIndex, _incrementIndex);
     case 104:
-      return decodeTuple8(data, getIndex, incrementIndex);
+      return _decodeTuple8(data, _getIndex, _incrementIndex);
     case 107:
-      return decodeCharlist(data, getIndex, incrementIndex);
+      return _decodeCharlist(data, _getIndex, _incrementIndex);
     case 108:
-      return decodeList32(data, getIndex, incrementIndex);
+      return _decodeList32(data, _getIndex, _incrementIndex);
     case 109:
-      return decodeString32(data, getIndex, incrementIndex);
+      return _decodeString32(data, _getIndex, _incrementIndex);
     case 110:
-      return decodeSmallBignum(data, getIndex, incrementIndex);
+      return _decodeSmallBignum(data, _getIndex, _incrementIndex);
     case 111:
-      return decodeBigBignum(data, getIndex, incrementIndex);
+      return _decodeBigBignum(data, _getIndex, _incrementIndex);
     case 115:
-      return decodeString8(data, getIndex, incrementIndex);
+      return _decodeString8(data, _getIndex, _incrementIndex);
     case 118:
-      return decodeString16(data, getIndex, incrementIndex);
+      return _decodeString16(data, _getIndex, _incrementIndex);
     case 119:
-      return decodeString8(data, getIndex, incrementIndex);
+      return _decodeString8(data, _getIndex, _incrementIndex);
     case 105:
-      return decodeTuple32(data, getIndex, incrementIndex);
+      return _decodeTuple32(data, _getIndex, _incrementIndex);
     case 116:
-      return decodeMap(data, getIndex, incrementIndex);
+      return _decodeMap(data, _getIndex, _incrementIndex);
     default:
       return [];
   }
 }
 
-double readFloat(
+double _readFloat(
     Uint8List buffer, int offset, bool isLE, int mLen, int nBytes) {
   int e, m;
   var eLen = (nBytes * 8) - mLen - 1;
@@ -223,17 +227,13 @@ double readFloat(
   return ((s != 0 ? -1 : 1) * m * pow(2, e - mLen)).toDouble();
 }
 
-String utf8Arr(dynamic ab) {
+String _utf8Arr(dynamic ab) {
   if (ab is! Uint8List) {
-    ab = Uint8List.fromList(utf8Enc(ab)).buffer;
+    ab = Uint8List.fromList(_utf8Enc(ab)).buffer;
   }
-  return utf8Dec(ab);
+  return _utf8Dec(ab);
 }
 
-String utf8Dec(Uint8List ab) {
-  return utf8.decode(ab);
-}
+String _utf8Dec(Uint8List ab) => utf8.decode(ab);
 
-List<int> utf8Enc(String ab) {
-  return utf8.encode(ab);
-}
+List<int> _utf8Enc(String ab) => utf8.encode(ab);
