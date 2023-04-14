@@ -1,19 +1,10 @@
 name: bert
 description: ETF (External Term Format) and BERT (Binary ERlang Term) decoder
-version: 0.0.1
-homepage:
+version: 0.0.2
+homepage: https://github.com/Youimmi/bert
 
 environment:
   sdk: '>=2.17.0 <4.0.0'
-  flutter: ">=1.17.0"
-
-dependencies:
-  flutter:
-    sdk: flutter
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
